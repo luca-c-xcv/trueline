@@ -82,7 +82,6 @@ _trueline_has_ssh() {
         echo 'has_ssh'
     fi
 }
-
 _trueline_date_segment(){
     local fg_color="$1"
     local bg_color="$2"
@@ -91,13 +90,12 @@ _trueline_date_segment(){
     local date='[ '
     date+="$(date +'%d/%m/%y %H:%M:%S')"
     date+=' ]'
+
     local segment="$(_trueline_separator)"
     segment+="$(_trueline_content "$fg_color" "$bg_color" "$font_style" " $date ")"
-
     PS1+="$segment"
     _trueline_record_colors "$fg_color" "$bg_color" "$font_style"
 }
-
 _trueline_user_segment() {
     local fg_color="$1"
     local bg_color="$2"
@@ -290,7 +288,7 @@ _trueline_working_dir_segment() {
         fi
     fi
     segment+="$(_trueline_content "$fg_color" "$bg_color" "$font_style" " $path_ ")"
-    PS1+="$segment"   
+    PS1+="$segment"
     _trueline_record_colors "$fg_color" "$bg_color" "$font_style"
 }
 
@@ -492,13 +490,14 @@ declare -A TRUELINE_COLORS_DEFAULT=(
     [green]='152;195;121'     #98c379
     [grey]='171;178;191'      #abb2bf
     [light_blue]='97;175;239' #61afef
+    [dark_blue]='33;95;145'  #2c7ec2
     [mono]='130;137;151'      #828997
     [orange]='209;154;102'    #d19a66
     [purple]='198;120;221'    #c678dd
     [red]='224;108;117'       #e06c75
     [special_grey]='59;64;72' #3b4048
     [white]='208;208;208'     #d0d0d0
-    [yellow]='239;224;16'     #EFE010
+    [darkgreen]='15;173;61'   #0FAD3D
 )
 if [[ "${#TRUELINE_COLORS[@]}" -eq 0 ]]; then
     declare -A TRUELINE_COLORS=()
@@ -512,18 +511,18 @@ unset TRUELINE_COLORS_DEFAULT
 
 if [[ "${#TRUELINE_SEGMENTS[@]}" -eq 0 ]]; then
     declare -a TRUELINE_SEGMENTS=(
-        'date,black,green,bold'
-        'user,black,light_blue,bold'
+        'date,black,darkgreen,bold'
+        'user,white,dark_blue,bold'
         'working_dir,mono,cursor_grey,normal'
+        'aws_profile,black,orange,bold'
         'venv,black,purple,bold'
         'conda_env,black,purple,bold'
-        'aws_profile,black,orange,bold'
         'git,grey,special_grey,normal'
         'read_only,black,orange,bold'
         'bg_jobs,black,orange,bold'
-        'exit_status,black,yellow,bold'
+        'exit_status,black,red,bold'
         # 'cmd_duration,black,grey,normal'
-        # 'newline,black,black,bold'
+        # 'newline,black,orange,bold'
     )
 fi
 
@@ -541,7 +540,7 @@ declare -A TRUELINE_SYMBOLS_DEFAULT=(
     [newline]='  '
     [newline_root]='  '
     [ps2]='...'
-    [read_only]='!'
+    [read_only]=''
     [segment_separator]=''
     [ssh]=''
     [timer]='羽'
@@ -550,7 +549,7 @@ declare -A TRUELINE_SYMBOLS_DEFAULT=(
     [vimode_ins]='I'
     [working_dir_folder]=''
     [working_dir_home]='~'
-    [working_dir_separator]='  '
+    [working_dir_separator]=''
 )
 if [[ "${#TRUELINE_SYMBOLS[@]}" -eq 0 ]]; then
     declare -A TRUELINE_SYMBOLS=()
@@ -606,14 +605,14 @@ fi
 
 # Working dir
 if [[ -z "$TRUELINE_WORKING_DIR_SPACE_BETWEEN_PATH_SEPARATOR" ]]; then
-    TRUELINE_WORKING_DIR_SPACE_BETWEEN_PATH_SEPARATOR=false
+    TRUELINE_WORKING_DIR_SPACE_BETWEEN_PATH_SEPARATOR=true
 
 fi
 if [[ -z "$TRUELINE_WORKING_DIR_ABBREVIATE_PARENT_DIRS" ]]; then
     TRUELINE_WORKING_DIR_ABBREVIATE_PARENT_DIRS=false
 fi
 if [[ -z "$TRUELINE_WORKING_DIR_ABBREVIATE_PARENT_DIRS_LENGTH" ]]; then
-    TRUELINE_WORKING_DIR_ABBREVIATE_PARENT_DIRS_LENGTH=0
+    TRUELINE_WORKING_DIR_ABBREVIATE_PARENT_DIRS_LENGTH=1
 fi
 
 #----------------+
