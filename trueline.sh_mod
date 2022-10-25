@@ -1,4 +1,4 @@
-# shellcheck disable=SC2155,SC2148
+# shellcheck disable=SC2155
 #---------+
 # Helpers |
 #---------+
@@ -178,19 +178,13 @@ _trueline_aws_profile_segment() {
 }
 
 _trueline_has_git_branch() {
-    branch=$(git rev-parse --abbrev-ref HEAD 2> /dev/null)
-
-    if [[ "$?" -ne "128" ]]; then
-        printf "%s" "$branch"
-    else
-        printf "%s" ""
-    fi
+    printf "%s" "$(git rev-parse --abbrev-ref HEAD 2> /dev/null)"
 }
 _trueline_git_mod_files() {
     nr_mod_files="$(git diff --name-only --diff-filter=M 2> /dev/null | wc -l | sed 's/^ *//')"
     mod_files=''
     if [[ ! "$nr_mod_files" -eq 0 ]]; then
-        mod_files="${TRUELINE_SYMBOLS[git_modified]}"
+        mod_files="${TRUELINE_SYMBOLS[git_modified]} "
         if [[ "$TRUELINE_GIT_SHOW_STATUS_NUMBERS" = true ]]; then
             mod_files+="$nr_mod_files "
         fi
@@ -287,10 +281,9 @@ _trueline_working_dir_segment() {
                 p="${TRUELINE_SYMBOLS[working_dir_folder]}"$(echo "$p")
             fi
         fi
-        # local curr=$(basename "$p")
-        # p=$(dirname "$p")
-        #local path_="${p//\//$wd_separator}$wd_separator\[\033[1m\]$curr"
-        local path_="${p}"
+        local curr=$(basename "$p")
+        p=$(dirname "$p")
+        local path_="${p//\//$wd_separator}$wd_separator\[\033[1m\]$curr"
         if [[ "${p:0:1}" = '/' ]]; then
             path_="$path_"
         fi
@@ -301,13 +294,7 @@ _trueline_working_dir_segment() {
 }
 
 _trueline_bg_jobs_segment() {
-    # Note: We clear terminated foreground job information by first calling
-    # `jobs &>/dev/null' and then obtain the information of the currently running
-    # jobs by `jobs -p'.
-    local bg_jobs=$(
-        jobs &> /dev/null
-        jobs -p | wc -l | sed 's/^ *//'
-    )
+    local bg_jobs=$(jobs -p | wc -l | sed 's/^ *//')
     if [[ ! "$bg_jobs" -eq 0 ]]; then
         local fg_color="$1"
         local bg_color="$2"
@@ -343,7 +330,7 @@ _trueline_exit_status_segment() {
         local bg_color="$2"
         local font_style="$3"
         local segment="$(_trueline_separator)"
-        #segment+="$(_trueline_content "$fg_color" "$bg_color" "$font_style" "${TRUELINE_SYMBOLS[exit_status]} $_exit_status ")"
+        # segment+="$(_trueline_content "$fg_color" "$bg_color" "$font_style" "${TRUELINE_SYMBOLS[exit_status]} $_exit_status ")"
         segment+="$(_trueline_content "$fg_color" "$bg_color" "$font_style" "${TRUELINE_SYMBOLS[exit_status]} ✘ ")"
         PS1+="$segment"
         _trueline_record_colors "$fg_color" "$bg_color" "$font_style"
@@ -470,7 +457,7 @@ _trueline_continuation_prompt() {
 }
 
 _trueline_prompt_command() {
-    local _exit_status="$?"
+    _exit_status="$?"
     PS1=""
 
     local segment_def=
@@ -493,10 +480,7 @@ _trueline_prompt_command() {
     unset _first_color_bg
     unset _first_font_style
     unset _last_color
-
-    # Note: we reset the exit status to the original value for the subsequent
-    # commands in PROMPT_COMMAND.
-    return "$_exit_status"
+    unset _exit_status
 }
 
 #---------------+
@@ -516,7 +500,6 @@ declare -A TRUELINE_COLORS_DEFAULT=(
     [special_grey]='59;64;72' #3b4048
     [white]='208;208;208'     #d0d0d0
     [darkgreen]='15;173;61'   #0FAD3D
-    [yellow]='255;247;104'    #FFF768
 )
 if [[ "${#TRUELINE_COLORS[@]}" -eq 0 ]]; then
     declare -A TRUELINE_COLORS=()
@@ -530,8 +513,8 @@ unset TRUELINE_COLORS_DEFAULT
 
 if [[ "${#TRUELINE_SEGMENTS[@]}" -eq 0 ]]; then
     declare -a TRUELINE_SEGMENTS=(
-        #'date,black,darkgreen,bold'
-        'user,yellow,dark_blue,normal'
+        # 'date,black,darkgreen,bold'
+        'user,white,dark_blue,bold'
         'working_dir,mono,cursor_grey,normal'
         'aws_profile,black,orange,bold'
         'venv,black,purple,bold'
@@ -555,10 +538,10 @@ declare -A TRUELINE_SYMBOLS_DEFAULT=(
     [git_branch]=''
     [git_github]=''
     [git_gitlab]=''
-    [git_modified]='+'
+    [git_modified]=''
     [newline]='  '
     [newline_root]='  '
-    [ps2]='➝'
+    [ps2]='...'
     [read_only]=''
     [segment_separator]=''
     [ssh]=''
@@ -624,7 +607,7 @@ fi
 
 # Working dir
 if [[ -z "$TRUELINE_WORKING_DIR_SPACE_BETWEEN_PATH_SEPARATOR" ]]; then
-    TRUELINE_WORKING_DIR_SPACE_BETWEEN_PATH_SEPARATOR=true
+    TRUELINE_WORKING_DIR_SPACE_BETWEEN_PATH_SEPARATOR=false
 
 fi
 if [[ -z "$TRUELINE_WORKING_DIR_ABBREVIATE_PARENT_DIRS" ]]; then
@@ -637,11 +620,9 @@ fi
 #----------------+
 # PROMPT_COMMAND |
 #----------------+
-if ((BASH_VERSINFO[0] > 5 || BASH_VERSINFO[0] == 5 && BASH_VERSINFO[1] >= 1)); then
-    # Bash 5.1 and above supports the PROMPT_COMMAND array
-    PROMPT_COMMAND=${PROMPT_COMMAND-}
-    PROMPT_COMMAND+=(_trueline_prompt_command)
-else
-    # shellcheck disable=SC2128,SC2178
-    PROMPT_COMMAND="_trueline_prompt_command${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
+# Backup old prompt command first
+if [ -z "$_PROMPT_COMMAND_OLD" ]; then
+    _PROMPT_COMMAND_OLD="$PROMPT_COMMAND"
 fi
+unset PROMPT_COMMAND
+PROMPT_COMMAND=_trueline_prompt_command
