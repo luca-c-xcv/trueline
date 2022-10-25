@@ -1,4 +1,4 @@
-# shellcheck disable=SC2155
+# shellcheck disable=SC2155,SC2148
 #---------+
 # Helpers |
 #---------+
@@ -178,7 +178,13 @@ _trueline_aws_profile_segment() {
 }
 
 _trueline_has_git_branch() {
-    printf "%s" "$(git rev-parse --abbrev-ref HEAD 2> /dev/null)"
+    branch=$(git rev-parse --abbrev-ref HEAD 2> /dev/null)
+
+    if [[ "$?" -ne "128" ]]; then
+        printf "%s" "$branch"
+    else
+        printf "%s" ""
+    fi
 }
 _trueline_git_mod_files() {
     nr_mod_files="$(git diff --name-only --diff-filter=M 2> /dev/null | wc -l | sed 's/^ *//')"
@@ -293,7 +299,13 @@ _trueline_working_dir_segment() {
 }
 
 _trueline_bg_jobs_segment() {
-    local bg_jobs=$(jobs -p | wc -l | sed 's/^ *//')
+    # Note: We clear terminated foreground job information by first calling
+    # `jobs &>/dev/null' and then obtain the information of the currently running
+    # jobs by `jobs -p'.
+    local bg_jobs=$(
+        jobs &> /dev/null
+        jobs -p | wc -l | sed 's/^ *//'
+    )
     if [[ ! "$bg_jobs" -eq 0 ]]; then
         local fg_color="$1"
         local bg_color="$2"
@@ -455,7 +467,7 @@ _trueline_continuation_prompt() {
 }
 
 _trueline_prompt_command() {
-    _exit_status="$?"
+    local _exit_status="$?"
     PS1=""
 
     local segment_def=
@@ -478,7 +490,10 @@ _trueline_prompt_command() {
     unset _first_color_bg
     unset _first_font_style
     unset _last_color
-    unset _exit_status
+
+    # Note: we reset the exit status to the original value for the subsequent
+    # commands in PROMPT_COMMAND.
+    return "$_exit_status"
 }
 
 #---------------+
@@ -618,9 +633,11 @@ fi
 #----------------+
 # PROMPT_COMMAND |
 #----------------+
-# Backup old prompt command first
-if [ -z "$_PROMPT_COMMAND_OLD" ]; then
-    _PROMPT_COMMAND_OLD="$PROMPT_COMMAND"
+if ((BASH_VERSINFO[0] > 5 || BASH_VERSINFO[0] == 5 && BASH_VERSINFO[1] >= 1)); then
+    # Bash 5.1 and above supports the PROMPT_COMMAND array
+    PROMPT_COMMAND=${PROMPT_COMMAND-}
+    PROMPT_COMMAND+=(_trueline_prompt_command)
+else
+    # shellcheck disable=SC2128,SC2178
+    PROMPT_COMMAND="_trueline_prompt_command${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
 fi
-unset PROMPT_COMMAND
-PROMPT_COMMAND=_trueline_prompt_command
